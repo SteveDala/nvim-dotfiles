@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -675,7 +675,6 @@ require('lazy').setup({
         -- gopls = {},
         pyright = {},
         r_language_server = {},
-        marksman = {},
         powershell_es = {},
         bashls = {},
         -- rust_analyzer = {}
@@ -995,10 +994,9 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
-
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
@@ -1031,5 +1029,67 @@ require('lazy').setup({
   },
 })
 
+_G.terminal_send_visual = function()
+  -- defer to let <Esc> take effect
+  vim.schedule(function()
+    local get_visual_selection = function()
+      local _, start_line, start_col, _ = unpack(vim.fn.getpos "'<")
+      local _, end_line, end_col, _ = unpack(vim.fn.getpos "'>")
+      local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
+      if #lines == 0 then
+        return ''
+      end
+
+      lines[#lines] = string.sub(lines[#lines], 1, math.max(1, end_col))
+      lines[1] = string.sub(lines[1], start_col)
+
+      return table.concat(lines, '\n')
+    end
+
+    local function get_first_terminal()
+      local terminal_chans = {}
+      for _, chan in pairs(vim.api.nvim_list_chans()) do
+        if chan['mode'] == 'terminal' and chan['pty'] ~= '' then
+          table.insert(terminal_chans, chan)
+        end
+      end
+      table.sort(terminal_chans, function(left, right)
+        return left['buffer'] < right['buffer']
+      end)
+      if #terminal_chans == 0 then
+        vim.notify('No terminal found', vim.log.levels.WARN)
+        return nil
+      end
+      return terminal_chans[1]['id']
+    end
+
+    local function send_to_terminal(terminal_chan, text)
+      for line in text:gmatch '[^\r\n]+' do
+        vim.api.nvim_chan_send(terminal_chan, line .. '\n')
+      end
+    end
+
+    local terminal = get_first_terminal()
+    if not terminal then
+      return
+    end
+
+    local selected_text = get_visual_selection()
+    if selected_text ~= '' then
+      send_to_terminal(terminal, selected_text)
+    end
+  end)
+
+  -- exit visual mode immediately
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'x', false)
+end
+
+vim.keymap.set('v', '<leader>ts', terminal_send_visual, { desc = '[T]erminal [S]end' })
+
+-- Highlight the 81st column
+vim.opt.colorcolumn = '81'
+vim.cmd [[highlight ColorColumn ctermbg=black guibg=black]]
+
+vim.opt.conceallevel = 0
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
