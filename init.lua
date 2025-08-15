@@ -102,7 +102,7 @@ vim.g.have_nerd_font = true
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -332,6 +332,11 @@ require('lazy').setup({
       'RainbowDelimQuoted',
       'RainbowMultiDelim',
     },
+  },
+  {
+    'stevedala/jupytext.nvim',
+    config = true,
+    -- lazy=false,
   },
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -713,6 +718,7 @@ require('lazy').setup({
         r_language_server = {},
         powershell_es = {},
         bashls = {},
+        texlab = {},
         -- rust_analyzer = {}
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -1130,5 +1136,8 @@ vim.opt.colorcolumn = '81'
 vim.cmd [[highlight ColorColumn ctermbg=black guibg=black]]
 
 vim.opt.conceallevel = 0
+
+vim.g.python3_host_prog = '~/.py-env/bin/python3'
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
